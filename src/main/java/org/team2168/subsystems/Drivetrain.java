@@ -221,20 +221,21 @@ public class Drivetrain extends SubsystemBase {
    */
   public void drive(ChassisSpeeds fieldRelativeSpeeds, DriveState driveState) {
     ChassisSpeeds robotRelativeSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds, gyro.getRotation2d());
+    moduleStates = swerveConfig.toSwerveModuleStates(robotRelativeSpeeds);
 
     for (int i = 0; i < WHEEL_COUNT; i++) {
-      moduleStates = swerveConfig.toSwerveModuleStates(robotRelativeSpeeds);
+      SwerveModuleState desiredState = SwerveModuleState.optimize(moduleStates[i], Rotation2d.fromRotations(getAzimuthPosition(i)));
 
       switch(driveState) {
         case PERCENTOUT:
-          double percentOutput = MathUtil.clamp(moduleStates[i].speedMetersPerSecond/MAX_WHEEL_SPEED, -1.0, 1.0); // prevents wheel speed from exceeding limit
+          double percentOutput = MathUtil.clamp(desiredState.speedMetersPerSecond/MAX_WHEEL_SPEED, -1.0, 1.0); // prevents wheel speed from exceeding limit
           driveTalons[i].set(percentOutput);
           break;
         case VELOCITY:
-          double velocity = MathUtil.clamp(moduleStates[i].speedMetersPerSecond, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED); // prevents wheel speed from exceeding limit
+          double velocity = MathUtil.clamp(desiredState.speedMetersPerSecond, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED); // prevents wheel speed from exceeding limit
           driveTalons[i].setControl(new VelocityVoltage(velocity));
       }
-      azimuthTalons[i].setControl(new MotionMagicVoltage(moduleStates[i].angle.getRotations()));
+      azimuthTalons[i].setControl(new MotionMagicVoltage(desiredState.angle.getRotations()));
     }
   }
 
@@ -295,6 +296,14 @@ public class Drivetrain extends SubsystemBase {
    */
   public double getModuleDrivenMeters(int moduleID) {
     return rotationsToMeters(driveTalons[moduleID].getRotorPosition().getValue());
+  }
+
+  /**
+   * @return absolute encoder position of azimuth motor (in rotations)
+   * @param moduleID specifies which azimuth to return position from (0 - 3), (fl, fr, bl, br)
+   */
+  public double getAzimuthPosition(int moduleID) {
+    return azimuthTalons[moduleID].getPosition().getValue();
   }
 
   /**
