@@ -32,6 +32,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
@@ -48,7 +50,8 @@ public class Drivetrain extends SubsystemBase {
   // configuration settings
   private static final int WHEEL_COUNT = 4;
   private static final double MAX_WHEEL_SPEED = 10.0; // meters/sec
-  private final double MAX_ROTATION_SPEED = rotationsToRad(3.0); // in radians
+  private static final double MAX_CHASSIS_SPEED = 6.0; // meters/sec
+  private final double MAX_ROTATION_SPEED = rotationsToRad(2.0); // in radians
   private static final double DRIVEBASE_LENGTH = 0.9; // in meters, distance from the center of a front wheel to the closest back wheel center
   private static final double DRIVEBASE_WIDTH = 0.9; // in meters, distance from the centers of a left wheel to the closest right wheel
   private SwerveDriveKinematics swerveConfig;
@@ -67,6 +70,7 @@ public class Drivetrain extends SubsystemBase {
   private static final double GEAR_RATIO = 5.60; // varies based on module type used
   private static final double WHEEL_CIRCUMFERENCE_IN = 4.0 * Math.PI;
   private static final double WHEEL_CIRCUMFERENCE_M = WHEEL_CIRCUMFERENCE_IN * 0.0254;
+  private StructArrayPublisher<SwerveModuleState> moduleStatePublisher; // publisher used for module state visualization via advantage scope
 
   // inverts (should vary based on physical module configuration)
   private final boolean[] DRIVE_INVERT = {true, false, true, false}; 
@@ -107,6 +111,9 @@ public class Drivetrain extends SubsystemBase {
 
     resetDriveEncoders();
     odometry = new SwerveDriveOdometry(swerveConfig, Rotation2d.fromDegrees(gyro.getYaw().getValue()), modulePositions);
+
+    // publishes module state array to network tables
+    moduleStatePublisher = NetworkTableInstance.getDefault().getStructArrayTopic("/Swerve Module States", SwerveModuleState.struct).publish();
   }
 
   /**
@@ -211,6 +218,12 @@ public class Drivetrain extends SubsystemBase {
 
       modulePositions[i] = new SwerveModulePosition(0.0, new Rotation2d(0.0));
       moduleStates[i] = new SwerveModuleState(0.0, new Rotation2d(0.0));
+
+      driveTalons[i] = driveTalon; // adds module motors to ordered array
+      azimuthTalons[i] = azimuthTalon;
+
+      System.out.println("absolute encoder offset module " + i + ": " + ENCODER_OFFSET[i]); // informs of module positions during robot initialization.
+      System.out.println("relative azimuth pos to zero offset: " + getAzimuthPosition(i)); // allows for quick re-zeroing of modules
     }
   }
 
@@ -222,18 +235,19 @@ public class Drivetrain extends SubsystemBase {
   public void drive(ChassisSpeeds fieldRelativeSpeeds, DriveState driveState) {
     ChassisSpeeds robotRelativeSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds, gyro.getRotation2d());
     moduleStates = swerveConfig.toSwerveModuleStates(robotRelativeSpeeds);
+    SwerveDriveKinematics.desaturateWheelSpeeds(moduleStates, robotRelativeSpeeds, MAX_WHEEL_SPEED, MAX_CHASSIS_SPEED, MAX_ROTATION_SPEED); // reduces wheel speed to fall into limits
 
     for (int i = 0; i < WHEEL_COUNT; i++) {
       SwerveModuleState desiredState = SwerveModuleState.optimize(moduleStates[i], Rotation2d.fromRotations(getAzimuthPosition(i)));
 
       switch(driveState) {
         case PERCENTOUT:
-          double percentOutput = MathUtil.clamp(desiredState.speedMetersPerSecond/MAX_WHEEL_SPEED, -1.0, 1.0); // prevents wheel speed from exceeding limit
+          double percentOutput = MathUtil.clamp(desiredState.speedMetersPerSecond/MAX_WHEEL_SPEED, -1.0, 1.0); // percent output calculation
           driveTalons[i].set(percentOutput);
           break;
         case VELOCITY:
-          double velocity = MathUtil.clamp(desiredState.speedMetersPerSecond, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED); // prevents wheel speed from exceeding limit
-          driveTalons[i].setControl(new VelocityVoltage(velocity));
+          driveTalons[i].setControl(new VelocityVoltage(desiredState.speedMetersPerSecond));
+          break;
       }
       azimuthTalons[i].setControl(new MotionMagicVoltage(desiredState.angle.getRotations()));
     }
@@ -281,6 +295,14 @@ public class Drivetrain extends SubsystemBase {
    */
   public double getMaxWheelSpeed() {
     return MAX_WHEEL_SPEED;
+  }
+
+  /**
+   * gets max wheel speed of chassis translation, used to determine speed output values during percent out drive mode
+   * @return maximum chassis speed
+   */
+  public double getMaxTranslationSpeed() {
+    return MAX_CHASSIS_SPEED;
   }
 
   /**
@@ -341,5 +363,6 @@ public class Drivetrain extends SubsystemBase {
       Rotation2d.fromRotations(azimuthTalons[i].getPosition().getValue()));
     }
     odometry.update(gyro.getRotation2d(), modulePositions);
+    moduleStatePublisher.set(moduleStates);
   }
 }

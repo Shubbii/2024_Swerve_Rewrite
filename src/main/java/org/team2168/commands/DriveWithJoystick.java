@@ -38,9 +38,9 @@ public class DriveWithJoystick extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    drivingSpeeds = new ChassisSpeeds(oi.getLimitedDriverJoystickXValue() * drivetrain.getMaxWheelSpeed() * kDriveInvert,
-    oi.getLimitedDriverJoystickYValue() * drivetrain.getMaxWheelSpeed() * kDriveInvert,
-    oi.getLimitedDriverJoystickZValue() * drivetrain.getMaxRotationalSpeed());
+    drivingSpeeds = new ChassisSpeeds(oi.getLimitedDriverJoystickYValue() * drivetrain.getMaxTranslationSpeed() * kDriveInvert,
+    -oi.getLimitedDriverJoystickXValue() * drivetrain.getMaxTranslationSpeed() * kDriveInvert, // set to negative as positive x on joystick is opposite direction of positive x in chassis speeds object
+    -oi.getLimitedDriverJoystickZValue() * drivetrain.getMaxRotationalSpeed()); // set to negative as positive z on joystick is opposite direction of positive z in chassis speeds object
 
     drivetrain.drive(drivingSpeeds, DriveState.PERCENTOUT);
   }
