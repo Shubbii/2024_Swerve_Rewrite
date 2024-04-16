@@ -18,6 +18,7 @@ public class DriveWithJoystick extends Command {
   Drivetrain drivetrain;
   OI oi;
   double kDriveInvert = 1.0;
+  double chassisRot = 0.0;
   ChassisSpeeds drivingSpeeds;
   public DriveWithJoystick(Drivetrain drivetrain) {
     // Use addRequirements() here to declare subsystem dependencies.
@@ -38,9 +39,23 @@ public class DriveWithJoystick extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
+    if (OI.joystickChooser.getSelected() == "flight") {
+      if (oi.driverJoystick.isPressedButtonA()) {
+        chassisRot = -1.0 * Math.PI;
+      }
+      else if (oi.driverJoystick.isPressedButtonB()) {
+        chassisRot = 1.0 * Math.PI;
+      }
+      else {
+        chassisRot = 0.0;
+      }
+    }
+    else {
+      chassisRot = -oi.getLimitedDriverJoystickZValue() * drivetrain.getMaxRotationalSpeed();
+    }
     drivingSpeeds = new ChassisSpeeds(oi.getLimitedDriverJoystickYValue() * drivetrain.getMaxTranslationSpeed() * kDriveInvert,
     -oi.getLimitedDriverJoystickXValue() * drivetrain.getMaxTranslationSpeed() * kDriveInvert, // set to negative as positive x on joystick is opposite direction of positive x in chassis speeds object
-    -oi.getLimitedDriverJoystickZValue() * drivetrain.getMaxRotationalSpeed()); // set to negative as positive z on joystick is opposite direction of positive z in chassis speeds object
+    chassisRot); // set to negative as positive z on joystick is opposite direction of positive z in chassis speeds object
 
     drivetrain.drive(drivingSpeeds, DriveState.PERCENTOUT);
   }

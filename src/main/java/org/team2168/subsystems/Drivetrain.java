@@ -49,13 +49,13 @@ public class Drivetrain extends SubsystemBase {
 
   // configuration settings
   private static final int WHEEL_COUNT = 4;
-  private static final double MAX_WHEEL_SPEED = 10.0; // meters/sec
-  private static final double MAX_CHASSIS_SPEED = 6.0; // meters/sec
+  private static final double MAX_WHEEL_SPEED = 4.877; // meters/sec
+  private static final double MAX_CHASSIS_SPEED = 4.0; // meters/sec
   private final double MAX_ROTATION_SPEED = rotationsToRad(2.0); // in radians
   private static final double DRIVEBASE_LENGTH = 0.9; // in meters, distance from the center of a front wheel to the closest back wheel center
   private static final double DRIVEBASE_WIDTH = 0.9; // in meters, distance from the centers of a left wheel to the closest right wheel
   private SwerveDriveKinematics swerveConfig;
-  private final double[] ENCODER_OFFSET = {0.0, 0.0, 0.0, 0.0}; // encoder offsets should be set to azimuth position readings when modules are at their zeroed positions
+  private final double[] ENCODER_OFFSET = {-0.8337402, 0.2568359, -0.538818359, 0.23510742}; // encoder offsets should be set to azimuth position readings when modules are at their zeroed positions
 
   // motors
   private TalonFX[] driveTalons = new TalonFX[WHEEL_COUNT];
@@ -159,15 +159,15 @@ public class Drivetrain extends SubsystemBase {
     .withSupplyTimeThreshold(TRIGGER_DRIVE_THRESHOLD_TIME);
 
     azimuthFeedbackConfig.withFeedbackSensorSource(FeedbackSensorSourceValue.RemoteCANcoder);
-    azimuthSlot0Config.withKP(5.0) // tune pid gains as needed
-    .withKI(1.0)
+    azimuthSlot0Config.withKP(40.0) // tune pid gains as needed
+    .withKI(1.28)
     .withKD(0.0)
     .withKV(0.0)
     .withKA(0.0)
     .withKS(0.0);
 
-    azimuthMotionMagicConfig.withMotionMagicAcceleration(150.0); // rotations/sec^2
-    azimuthMotionMagicConfig.withMotionMagicCruiseVelocity(40.0); // rotations/sec
+    azimuthMotionMagicConfig.withMotionMagicAcceleration(80.0); // rotations/sec^2
+    azimuthMotionMagicConfig.withMotionMagicCruiseVelocity(20.0); // rotations/sec
 
     driveFeedbackConfig.withFeedbackSensorSource(FeedbackSensorSourceValue.RotorSensor);
     driveSlot0Config.withKP(0.3) // tune pid gains as needed
@@ -246,7 +246,7 @@ public class Drivetrain extends SubsystemBase {
           driveTalons[i].set(percentOutput);
           break;
         case VELOCITY:
-          driveTalons[i].setControl(new VelocityVoltage(desiredState.speedMetersPerSecond));
+          driveTalons[i].setControl(new VelocityVoltage(metersToRotations(desiredState.speedMetersPerSecond)));
           break;
       }
       azimuthTalons[i].setControl(new MotionMagicVoltage(desiredState.angle.getRotations()));
@@ -334,7 +334,7 @@ public class Drivetrain extends SubsystemBase {
    * @return equivalent distance in rotations
    */
   public double metersToRotations(double meters) {
-    return (meters * GEAR_RATIO) * WHEEL_CIRCUMFERENCE_M;
+    return (meters * GEAR_RATIO) / WHEEL_CIRCUMFERENCE_M;
   }
   
   /**
@@ -343,7 +343,7 @@ public class Drivetrain extends SubsystemBase {
    * @return equivalent distance in meters
    */
   public double rotationsToMeters(double rotations) {
-    return (rotations / GEAR_RATIO) / WHEEL_CIRCUMFERENCE_M;
+    return (rotations / GEAR_RATIO) * WHEEL_CIRCUMFERENCE_M;
   }
 
   /**

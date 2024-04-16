@@ -21,26 +21,26 @@ public final class Constants {
    * IDs for all CAN Devices, including swerve module motors and encoders, are initialized in this class.
    */
   public static class CANDevices {
-    public static final int DRIVE_FL = 0;
-    public static final int DRIVE_FR = 1;
-    public static final int DRIVE_BL = 2;
+    public static final int DRIVE_FL = 2;
+    public static final int DRIVE_FR = 13;
+    public static final int DRIVE_BL = 12;
     public static final int DRIVE_BR = 3;
 
-    public static final int AZIMUTH_FL = 4;
-    public static final int AZIMUTH_FR = 5;
-    public static final int AZIMUTH_BL = 6;
-    public static final int AZIMUTH_BR = 7;
+    public static final int AZIMUTH_FL = 11;
+    public static final int AZIMUTH_FR = 1;
+    public static final int AZIMUTH_BL = 0;
+    public static final int AZIMUTH_BR = 6;
 
-    public static final int CANCODER_FL = 8;
-    public static final int CANCODER_FR = 9;
-    public static final int CANCODER_BL = 10;
-    public static final int CANCODER_BR = 11;
+    public static final int CANCODER_FL = 14;
+    public static final int CANCODER_FR = 4;
+    public static final int CANCODER_BL = 8;
+    public static final int CANCODER_BR = 7;
 
     public static final int[] DRIVE_MOTORS = {DRIVE_FL, DRIVE_FR, DRIVE_BL, DRIVE_BR};
     public static final int[] AZIMUTH_MOTORS = {AZIMUTH_FL, AZIMUTH_FR, AZIMUTH_BL, AZIMUTH_BR};
     public static final int[] CANCODER_IDS = {CANCODER_FL, CANCODER_FR, CANCODER_BL, CANCODER_BR};
 
-    public static final int PIGEON_ID = 12;
+    public static final int PIGEON_ID = 17;
   }
 
   public static class Controllers {
